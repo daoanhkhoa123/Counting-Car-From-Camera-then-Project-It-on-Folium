@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map and Car Counting</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div id="map-section">
+            <h2>Map: Hà Nội to TP.HCM</h2>
+            <div id="map">{{ map|safe }}</div>
+        </div>
+        <div id="car-counting-section">
+            <h2>Car Counting</h2>
+            <div id="video_feed">
+                <img id="video" src="{{ url_for('video_feed') }}" alt="Car Counting Video">
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
