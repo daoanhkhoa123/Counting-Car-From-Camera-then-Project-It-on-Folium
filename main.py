@@ -114,4 +114,10 @@ def video_feed():
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-port", type=int, default=5000)
+    args = parser.parse_args()
+
+    app.run(port= args.port,debug=True)
