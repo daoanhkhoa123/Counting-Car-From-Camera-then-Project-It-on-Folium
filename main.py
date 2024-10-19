@@ -6,12 +6,15 @@ import pandas as pd
 from ultralytics import YOLO
 from tracker import Tracker
 
+import traffic_pred.traffic_prediction
+
 app = Flask(__name__)
 
 # Coordinates for Hanoi and Ho Chi Minh City
 hanoi = [21.0285, 105.8542]
 ho_chi_minh = [10.8231, 106.6297]
 colors = ['red', 'blue', 'green', 'purple', 'orange']
+
 
 @app.route('/')
 def index():
@@ -20,14 +23,18 @@ def index():
     map_html = create_map(random_color)
     return render_template('index.html', map=Markup(map_html))
 
+
 def create_map(line_color):
     """
     Create a folium map with a colored line between Hanoi and Ho Chi Minh City
     """
     folium_map = folium.Map(location=[16.0, 108.0], zoom_start=6)
-    folium.PolyLine([hanoi, ho_chi_minh], color=line_color, weight=5).add_to(folium_map)
-    folium.Marker(hanoi, popup="Hà Nội", icon=folium.Icon(color='blue')).add_to(folium_map)
-    folium.Marker(ho_chi_minh, popup="TP.HCM", icon=folium.Icon(color='red')).add_to(folium_map)
+    folium.PolyLine([hanoi, ho_chi_minh], color=line_color,
+                    weight=5).add_to(folium_map)
+    folium.Marker(hanoi, popup="Hà Nội", icon=folium.Icon(
+        color='blue')).add_to(folium_map)
+    folium.Marker(ho_chi_minh, popup="TP.HCM",
+                  icon=folium.Icon(color='red')).add_to(folium_map)
     return folium_map._repr_html_()
 
 
@@ -53,7 +60,7 @@ def gen_frames():
         class_list = my_file.read().split("\n")
 
     tracker = Tracker()
-    cap = cv2.VideoCapture('static/traffic_video.mp4') 
+    cap = cv2.VideoCapture('static/traffic_video.mp4')
 
     while True:
         ret, frame = cap.read()
@@ -93,7 +100,8 @@ def gen_frames():
             # Draw car position and ID
             if id in tracked_cars:
                 cv2.circle(frame, (center_x, center_y), 4, (0, 0, 255), -1)
-                cv2.putText(frame, str(id), (center_x, center_y), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 255, 255), 2)
+                cv2.putText(frame, str(id), (center_x, center_y),
+                            cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 255, 255), 2)
 
         # Update car count
         car_count = len(tracked_cars)
@@ -101,7 +109,8 @@ def gen_frames():
         # Draw counting lines and car count
         cv2.line(frame, (240, line_1_y), (780, line_1_y), (255, 255, 255), 1)
         cv2.line(frame, (100, line_2_y), (920, line_2_y), (255, 255, 255), 1)
-        cv2.putText(frame, f"car_count: {car_count}", (100, 100), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 255, 255), 2)
+        cv2.putText(frame, f"car_count: {
+                    car_count}", (100, 100), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 255, 255), 2)
 
         # Encode the frame for streaming
         ret, buffer = cv2.imencode('.jpg', frame)
@@ -109,9 +118,11 @@ def gen_frames():
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
+
 @app.route('/video_feed')
 def video_feed():
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
 
 if __name__ == '__main__':
     import argparse
