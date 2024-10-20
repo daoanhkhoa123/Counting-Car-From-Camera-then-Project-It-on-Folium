@@ -109,8 +109,7 @@ def gen_frames():
         # Draw counting lines and car count
         cv2.line(frame, (240, line_1_y), (780, line_1_y), (255, 255, 255), 1)
         cv2.line(frame, (100, line_2_y), (920, line_2_y), (255, 255, 255), 1)
-        cv2.putText(frame, f"car_count: {
-                    car_count}", (100, 100), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 255, 255), 2)
+        cv2.putText(frame, f"car_count: {car_count}", (100, 100), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 255, 255), 2)
 
         # Encode the frame for streaming
         ret, buffer = cv2.imencode('.jpg', frame)
