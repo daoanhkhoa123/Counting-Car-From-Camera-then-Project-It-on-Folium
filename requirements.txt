@@ -1,0 +1,5 @@
+Flask==2.0.3
+opencv-python==4.5.3.20210927
+torch==1.10.0+cu113  # Thay đổi phiên bản và CUDA nếu cần
+ultralytics==8.0.0
+vidgear==0.2.1
