@@ -40,8 +40,8 @@ body, html {
     background-color: #f2f2f2;
 }
 
-.frame2 {
-    background-color: #e6e6e6;
+.frame frame2 {
+    background-color: #e6e6e6; 
 }
 
 .frame3 {
@@ -50,4 +50,19 @@ body, html {
 
 .frame4 {
     background-color: #cccccc;
+}
+
+.frame2 #video_feed {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+#video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Keeps aspect ratio while filling frame */
 }

@@ -1,19 +1,26 @@
-from flask import Flask, render_template, Response, jsonify
+from flask import Flask, render_template, Response, jsonify, url_for
 import cv2
+import numpy as np
 from ultralytics import YOLO
 from vidgear.gears import CamGear
 from tracker import *
 import torch
 import threading
 import time
-
+import folium
+from numpy.random import choice
+import time
+import random 
+from traffic_pred.traffic_prediction import Traiffic_Classifier
 app = Flask(__name__) 
 
 # Load the YOLO model
 yolo_model = YOLO('yolov8m.pt')
+traffic_model = Traiffic_Classifier()
 
 # Stream video
-video_stream = CamGear(source='https://www.youtube.com/watch?v=FsL_KQz4gpw', stream_mode=True, logging=True).start()
+video_stream = CamGear(source='https://www.youtube.com/watch?v=wqctLW0Hb_0', stream_mode=True, logging=True).start()  # not stream
+# video_stream = CamGear(source='https://www.youtube.com/watch?v=FsL_KQz4gpw', stream_mode=True, logging=True).start()
 vehicle_classes = ['truck', 'car', 'bus', 'motorcycle']
 # Global variables for vehicle counting
 tracked_vehicles_left = {'car': set(), 'truck': set(), 'bus': set(), 'motorcycle': set()}
@@ -30,7 +37,7 @@ def check_not_existed_vehicle(vehicle_id):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('layout.html')
 
 @app.route('/vehicle_counts')
 def get_vehicle_counts():
@@ -43,8 +50,10 @@ def generate_frames():
     global tracked_vehicles_left, tracked_vehicles_right
     # Lines for counting
     line_y_position = 300
-    left_line_x_coords = [330, 470]
-    right_line_x_coords = [550, 700]
+    left_line_x_coords = [100, 470]
+    right_line_x_coords = [500, 900]
+    # left_line_x_coords = [330, 470]
+    # right_line_x_coords = [550, 700]
     tolerance = 6
 
     # Load COCO class names
@@ -125,23 +134,54 @@ def generate_frames():
 def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-def get_value():
-    return vehicle_counts_left, vehicle_counts_right
 
 def update_vehicle_counts():
     while True:
-        time.sleep(5)  # Wait for 5 seconds
-        # Get value
-        left_counts, right_counts = get_value()
-        print("Vehicle counts left:", left_counts)
-        print("Vehicle counts right:", right_counts)
+        time.sleep(50)  # Wait for 5 seconds
+        
+        print("Vehicle counts left:", vehicle_counts_left)
+        print("Vehicle counts right:", vehicle_counts_right)
 
         # Xóa dữ liệu trong tracked_vehicles
         for vehicle_class in vehicle_classes:
             tracked_vehicles_left[vehicle_class].clear()
             tracked_vehicles_right[vehicle_class].clear()
+            
+
+def get_volumn():
+    global traffic_model
+    total = sum(vehicle_counts_left.values())
+    predict_input = np.array([vehicle_counts_left['car'],
+                              vehicle_counts_left['motorcycle'],
+                              vehicle_counts_left['bus'],
+                              vehicle_counts_left['truck'],
+                              total]).reshape(1, -1)*15
+    print(predict_input)
+    pred_volumn = traffic_model.predict_text(predict_input)[0]
+    print("pred_volumn:", pred_volumn)
+    return [total, pred_volumn]
+@app.route("/generate_map")
+def generate_map():
+    gen_map()  # This will update the map with new data
+    return {"status": "Map updated"}
+
+def gen_map():
+    market_street_coords = [
+        [37.774929, -122.419416],
+        [37.793731, -122.394242]
+    ]
+
+    m = folium.Map(location=[37.7749, -122.4194], zoom_start=13)
+    traffic_data = get_volumn()
+    color_map = {'low': 'green', 'normal': 'yellow', 'heavy': 'orange', 'high': 'red'}
+    print("traffic_data", traffic_data)
+    color = color_map[traffic_data[1]]
+    print("color", color)
+    folium.PolyLine(market_street_coords, color=color, weight=8, opacity=0.6).add_to(m)
+    print("Folium ran ")
+    m.save('static/map.html')
 
 if __name__ == '__main__':
-    # Start a thread to update vehicle counts every minute
     threading.Thread(target=update_vehicle_counts, daemon=True).start()
+    gen_map()
     app.run(debug=True)

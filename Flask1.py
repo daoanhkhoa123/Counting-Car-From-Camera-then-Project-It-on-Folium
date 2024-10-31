@@ -23,9 +23,8 @@ posts = [
 
 
 @app.route("/")
-@app.route("/home")
 def home():
-    return render_template('home.html', posts=posts)
+    return render_template('layout.html', posts=posts)
 
 @app.route("/about")
 def about():
@@ -77,8 +76,8 @@ def gen_map():
         [37.793731, -122.394242]
     ]
 
-    m = folium.Map(location=[37.7749, -122.4194], zoom_start=15)
-    traffic_data = gen_dummies_data(1)
+    m = folium.Map(location=[37.7749, -122.4194], zoom_start=13)
+    traffic_data = gen_dummies_data(5)
     for data in traffic_data:
         color = 'green' if data['status'] == 'light' else 'orange' if data['status'] == 'medium' else 'red'
         folium.PolyLine(market_street_coords, color=color, weight=8, opacity=0.6).add_to(m)
