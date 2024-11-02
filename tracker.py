@@ -16,7 +16,7 @@ class Tracker:
 
         # Get center point of new object
         for rect in objects_rect:
-            x, y, w, h, object_class= rect
+            x, y, w, h = rect
             cx = (x + x + w) // 2
             cy = (y + y + h) // 2
 
@@ -47,4 +47,4 @@ class Tracker:
 
         # Update dictionary with IDs not used removed
         self.center_points = new_center_points.copy()
-        return objects_bbs_ids, object_class
+        return objects_bbs_ids
