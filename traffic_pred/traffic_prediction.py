@@ -15,7 +15,7 @@ class Traffic_Situation_Encoder:
         return decode_map[number]
 
 
-class Traiffic_Classifier:
+class Traffic_Classifier:
     """Conslt at my traffic_prediction.ipynb
 
     Mainly dependent on traffic_prediction_dapassignment binary
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     print(tse.to_number("low"))
     print(tse.to_string(2))
 
-    tc = Traiffic_Classifier()
+    tc = Traffic_Classifier()
     print(tc.grid)
     data = np.array([5, 10, 7, 9, 31]).reshape(1,-1)
     # data = data[:,np.newaxis]

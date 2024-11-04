@@ -7,8 +7,7 @@ import numpy as np
 from ultralytics import YOLO
 from vidgear.gears import CamGear
 from tracker import *
-import folium
-from traffic_pred.traffic_prediction import Traiffic_Classifier
+from traffic_pred.traffic_prediction import Traffic_Classifier
 import time
 import matplotlib.dates as mdates
 import matplotlib
@@ -20,20 +19,24 @@ app = Flask(__name__)
 
 # Load the YOLO model and traffic classifier
 yolo_model = YOLO('yolov8m.pt')
-traffic_model = Traiffic_Classifier()
+traffic_model = Traffic_Classifier()
 
 video_stream = CamGear(source='https://www.youtube.com/watch?v=wqctLW0Hb_0',
                        stream_mode=True, logging=True).start()  # not stream
-# Initialize video stream
+# # Initialize video stream
 # video_stream = CamGear(source='https://www.youtube.com/watch?v=FsL_KQz4gpw',
 #                        stream_mode=True, logging=True).start()
 
-vehicle_classes = ['car','truck',  'bus', 'motorcycle']
-color_map = {'low': 'green', 'normal': 'yellow', 'heavy': 'orange', 'high': 'red'}
+# video_stream = CamGear(source='https://www.youtube.com/watch?v=Y1jTEyb3wiI',
+#                        stream_mode=True, logging=True).start()
+
+vehicle_classes = ['car', 'truck',  'bus', 'motorcycle']
+color_map = {'low': 'green', 'normal': 'yellow',
+             'heavy': 'orange', 'high': 'red'}
 
 # Initialize vehicle counts as a dictionary
 traffic_pie = np.zeros(4, dtype=int)
-vehicle_counts = np.zeros(len(vehicle_classes), dtype=int)
+vehicle_counts = np.zeros(4, dtype=int)
 
 traffic_data = [0, "low"]
 utc_plus_9 = timezone(timedelta(hours=9))
@@ -49,11 +52,11 @@ def index():
     return render_template('layout.html')
 
 
-@app.route('/vehicle_counts')
-def get_vehicle_counts():
-    return jsonify({
-        'counts': dict(zip(vehicle_classes, vehicle_counts.tolist())),
-    })
+# @app.route('/vehicle_counts')
+# def get_vehicle_counts():
+#     return jsonify({
+#         'counts': dict(zip(vehicle_classes, vehicle_counts.tolist())),
+#     })
 
 
 def generate_frames():
@@ -64,7 +67,7 @@ def generate_frames():
     frame_counter = 0
     fps = 0
     prev_time = time.time()
-    
+
     while True:
         vehicle_counts[:] = 0  # Reset vehicle counts for each frame
         frame = video_stream.read()
@@ -72,7 +75,7 @@ def generate_frames():
             continue
 
         frame = cv2.resize(frame, (1020, 500))
-        
+
         # Predict on every frame for accurate tracking
         results = yolo_model.predict(frame)
         detected_boxes = results[0].boxes.data
@@ -83,12 +86,13 @@ def generate_frames():
             bbox_y1 = int(row[1])
             bbox_x2 = int(row[2])
             bbox_y2 = int(row[3])
-            detected_class = class_list[int(row[5])]
+            detected_class = class_list[int(row[5])] # float 4.312
 
             for idx, obj_class in enumerate(vehicle_classes):
                 # if obj_class in detected_class and bbox_x1 > line_x_coords:
-                if obj_class in detected_class :
-                    bounding_box_list.append([bbox_x1, bbox_y1, bbox_x2, bbox_y2])
+                if obj_class in detected_class:
+                    bounding_box_list.append(
+                        [bbox_x1, bbox_y1, bbox_x2, bbox_y2])
                     vehicle_counts[idx] += 1
 
         bbox_ids = vehicle_tracker.update(bounding_box_list)
@@ -99,7 +103,7 @@ def generate_frames():
             cv2.circle(frame, (center_x, center_y), 4, (0, 0, 255), -1)
             cv2.putText(frame, str(vehicle_id), (center_x, center_y),
                         cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 255, 255), 2)
-            
+
         frame_counter += 1
         current_time = time.time()
         if current_time - prev_time >= 1.0:
@@ -117,15 +121,16 @@ def generate_frames():
                         (0, y_position), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 0, 255), 2)
             y_position += 30
 
-        cv2.line(frame, (line_x_coords, 0), (line_x_coords, 900), (255, 255, 255), 1)
+        cv2.line(frame, (line_x_coords, 0),
+                 (line_x_coords, 900), (255, 255, 255), 1)
 
         # Encode the frame for streaming
-        ret, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
+        ret, buffer = cv2.imencode('.jpg', frame) # image encode 
+        frame = buffer.tobytes() # covert pic to bytes 
         traffic_data = get_volume()
         traffic_pie = vehicle_counts.copy()
-        traffic_pie[0]+=1
-        
+        traffic_pie[0] += 1
+
         yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 
@@ -137,28 +142,28 @@ def video_feed():
 def get_volume():
     global traffic_model, vehicle_counts
     print(vehicle_counts)
-    
+
     # Ensure predict_input has the correct shape for the model
-    predict_input = (vehicle_counts * 15).reshape(1, -1) + np.random.randint(0, 10, size=vehicle_counts.size)
-    
+    predict_input = (vehicle_counts * 15).reshape(1, -1) + \
+        np.random.randint(0, 10, size=vehicle_counts.size)
+
     # Tính tổng cho cột cuối cùng
-    total_count = np.sum(predict_input[0, :-1]) 
-    predict_input = np.append(predict_input, total_count).reshape(1, -1) 
-    
+    total_count = np.sum(predict_input[0, :-1])
+    predict_input = np.append(predict_input, total_count).reshape(1, -1)
+
     print(predict_input)
-    
+
     # Predict traffic volume
     pred_volume = traffic_model.predict_text(predict_input.reshape(1, -1))[0]
     print(pred_volume)
-    
-    return [total_count, pred_volume]
 
+    return [total_count, pred_volume]
 
 
 @app.route("/generate_map")
 def generate_map():
-    gen_map()
-    return {"status": "Map updated"}
+    market_street_coords, color = gen_map()
+    return jsonify({'coords': market_street_coords, 'color': color})
 
 
 def gen_map():
@@ -173,69 +178,67 @@ def gen_map():
         [35.66203079604145, 139.28614947860407],
     ]
 
-    m = folium.Map(location=[35.668215952240345, 139.30232459692803], zoom_start=14)
     color = color_map[traffic_data[1]]
-    folium.PolyLine(market_street_coords, color=color, weight=8, opacity=0.6).add_to(m)
-    m.save('static/map.html')
+    return market_street_coords, color
+
 
 @app.route('/generate_pie_chart')
 def generate_pie_chart():
     global traffic_pie, queue
     # Sample data for the pie chart
     labels = ['Car', 'Truck', 'Bus', 'Motorcycle']
-    time_pie = time.strftime("%Y-%m-%dT%H:%M:%S")
-    sizes =  list(traffic_pie)
+    sizes = list(traffic_pie)
     fig, ax = plt.subplots()
-    ax.pie(sizes, labels=labels, autopct='%1.1f%%')
-    
+
+    non_zero_labels = [labels[i] for i in range(len(labels)) if sizes[i] != 0] 
+    sizes = [s for s in sizes if s != 0]
+    ax.pie(sizes, labels=non_zero_labels, autopct='%1.1f%%')
+
     # Save the plot to an in-memory file
+    plt.legend(loc='upper right')
     plt.savefig('static/pie_chart.png')
-    
+
     plt.close(fig)  # Close the figure to release memory
     print("pied")
-
-    # Define a timezone offset for UTC+9
-
-    # Initialize a deque with a maximum length of 10 (adjustable)
-
-    # Set up the plot
-
-
-
 
     fig, ax = plt.subplots()
     ax.set_title("Real-time Time Series Plot")
     ax.set_xlabel("Timestamp")
-    ax.set_ylabel("Random Value")
+    ax.set_ylabel("Vehicle counts")
     ax.set_ylim(0, 25)  # Set the y-axis range from 0 to 100
-    line, = ax.plot([], [], 'b-', marker='o')  # Initialize an empty line for the plot
+    # Initialize an empty line for the plot
+    line, = ax.plot([], [], 'b-', marker='o')
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
     # Get the current time with the UTC+9 timezone
     current_time_utc_plus_9 = datetime.now(utc_plus_9)
-    print('curr time: ',current_time_utc_plus_9, type(current_time_utc_plus_9))
-
-    queue.append([current_time_utc_plus_9,np.sum(traffic_pie)])  # Automatically removes oldest if full
+    print('curr time: ', current_time_utc_plus_9, type(current_time_utc_plus_9))
     
+    current_time_utc_plus_9 = current_time_utc_plus_9 + timedelta(hours= +9)
+    # Automatically removes oldest if full
+    queue.append([current_time_utc_plus_9, np.sum(traffic_pie)])
+
     # Extract data from the queue for plotting
     times, values = zip(*queue)
-    
+    print("times:", times)
     # Update the plot's x and y data
     line.set_data(times, values)
     ax.set_xticks(times)  # Set x-axis ticks to the timestamp values
-    ax.set_yticks(range(0, 30, 10))  # Set y-axis ticks from 0 to 100 with steps of 10
+    # Set y-axis ticks from 0 to 100 with steps of 10
+    ax.set_yticks(range(0, 30, 10))
     ax.relim()         # Adjust plot limits
-    ax.autoscale_view() # Rescale view to fit new data
-    
+    ax.autoscale_view()  # Rescale view to fit new data
+
     # Rotate x-axis labels for readability
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
-    
+
     plt.savefig('static/time_series.png')
-    
+
     plt.close(fig)
 
     # Return the in-memory file as a response
-    return 
+    return
+
 
 if __name__ == '__main__':
     gen_map()
