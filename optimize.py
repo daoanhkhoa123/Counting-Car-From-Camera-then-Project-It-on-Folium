@@ -1,6 +1,6 @@
 from collections import deque
 from datetime import datetime, timedelta, timezone
-from flask import Flask, render_template, Response, jsonify, url_for, send_file
+from flask import Flask, render_template, Response, jsonify
 import cv2
 from matplotlib import pyplot as plt
 import numpy as np
@@ -22,13 +22,13 @@ yolo_model = YOLO('yolov8m.pt')
 traffic_model = Traffic_Classifier()
 
 video_stream = CamGear(source='https://www.youtube.com/watch?v=wqctLW0Hb_0',
-                       stream_mode=True, logging=True).start()  # not stream
+                       stream_mode=True, logging=True).start()  # not stream -> test detect
 # # Initialize video stream
 # video_stream = CamGear(source='https://www.youtube.com/watch?v=FsL_KQz4gpw',
-#                        stream_mode=True, logging=True).start()
+#                        stream_mode=True, logging=True).start() # stream x
 
 # video_stream = CamGear(source='https://www.youtube.com/watch?v=Y1jTEyb3wiI',
-#                        stream_mode=True, logging=True).start()
+#                        stream_mode=True, logging=True).start() # not stream -> test line 
 
 vehicle_classes = ['car', 'truck',  'bus', 'motorcycle']
 color_map = {'low': 'green', 'normal': 'yellow',
@@ -49,14 +49,8 @@ with open("coco.txt", "r") as class_file:
 
 @app.route('/')
 def index():
-    return render_template('layout.html')
+    return render_template('index.html')
 
-
-# @app.route('/vehicle_counts')
-# def get_vehicle_counts():
-#     return jsonify({
-#         'counts': dict(zip(vehicle_classes, vehicle_counts.tolist())),
-#     })
 
 
 def generate_frames():
@@ -144,7 +138,7 @@ def get_volume():
     print(vehicle_counts)
 
     # Ensure predict_input has the correct shape for the model
-    predict_input = (vehicle_counts * 15).reshape(1, -1) + \
+    predict_input = (vehicle_counts * 13).reshape(1, -1) + \
         np.random.randint(0, 10, size=vehicle_counts.size)
 
     # Tính tổng cho cột cuối cùng
@@ -205,7 +199,7 @@ def generate_pie_chart():
     ax.set_title("Real-time Time Series Plot")
     ax.set_xlabel("Timestamp")
     ax.set_ylabel("Vehicle counts")
-    ax.set_ylim(0, 25)  # Set the y-axis range from 0 to 100
+    ax.set_ylim(0, sum(sizes)/len(sizes)+sum(sizes)/2)  # Set the y-axis range from 0 to 100
     # Initialize an empty line for the plot
     line, = ax.plot([], [], 'b-', marker='o')
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))

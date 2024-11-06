@@ -1,25 +1,121 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Map and Car Counting</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
-    <div class="container">
-        <div id="map-section">
-            <h2>Map: Hà Nội to TP.HCM</h2>
-            <div id="map">{{ map|safe }}</div>
-        </div>
-        <div id="car-counting-section">
-            <h2>Car Counting</h2>
-            <div id="video_feed">
-                <img id="video" src="{{ url_for('video_feed') }}" alt="Car Counting Video">
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Traffic Density Webapp</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='Logo_Trường_Đại_học_FPT.svg.jpg') }}">
+    </head>
+    <body>
+        <div class="container">
+            <!-- Logo that appears every 10 seconds for 1 second -->
+            <div id="ToadContainer" style="display: none; position: absolute; top: 10px; left: 10px;">
+                <img id="ToadImage" src="{{ url_for('static', filename='logo.png') }}" alt="Logo" width="100" height="100">
+            </div>
+
+            <!-- First frame (top-left) with embedded Folium map -->
+            <div class="frame frame1">
+                <div id="map" style="width: 100%; height: 100%;"></div>
+            </div>
+
+            <!-- Video feed in the second frame -->
+            <div class="frame frame2">
+                <div id="video_feed">
+                    <img id="video" src="{{ url_for('video_feed') }}" width="100%" height="100%">
+                </div>
+            </div>
+
+            <!-- Pie chart in the third frame -->
+            <div class="frame frame3">
+                <div id="Chart">
+                    <img id="pieChart" src="{{ url_for('static', filename='pie_chart.png') }}" width="100%" height="100%">
+                </div>
+            </div>
+
+            <!-- TimeSeries in the third frame) -->
+            <div class="frame frame4">
+                <div id="TimeSeries">
+                    <img id="TimeSeriesChart" src="{{ url_for('static', filename='time_series.png') }}" width="100%" height="100%">
+                </div>
             </div>
         </div>
-    </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-</body>
+        <script>
+            var map = L.map('map').setView([35.668215952240345, 139.30232459692803], 14);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            var polyline;
+
+            function updateMap() {
+                $.getJSON('/generate_map', function(data) {
+                    var coords = data.coords;
+                    var color = data.color;
+
+                    if (polyline) {
+                        map.removeLayer(polyline);
+                    }
+
+                    polyline = L.polyline(coords, {color: color, weight: 8, opacity: 0.6}).addTo(map);
+                });
+            }
+
+            $(document).ready(function() {
+                updateMap();
+                setInterval(updateMap, 5000); // Update every 5 seconds
+            });
+        </script>
+
+        <script>
+            // Refresh the pie chart and time series chart every 5 seconds
+            setInterval(async function() {
+                await fetch("/generate_pie_chart");
+                document.getElementById('pieChart').src = "{{ url_for('static', filename='pie_chart.png') }}" + "?t=" + new Date().getTime();
+                document.getElementById('TimeSeriesChart').src = "{{ url_for('static', filename='time_series.png') }}" + "?t=" + new Date().getTime();
+            }, 5000);
+        </script>
+        <script>
+            setInterval(function() {
+                // Lấy phần tử container chính và tạo lớp phủ
+                const container = document.querySelector('.container');
+
+                // Tạo lớp phủ cho ảnh logo
+                const overlay = document.createElement('div');
+                overlay.style.position = 'absolute';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100%';
+                overlay.style.height = '100%';
+                overlay.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+                overlay.style.display = 'flex';
+                overlay.style.justifyContent = 'center';
+                overlay.style.alignItems = 'center';
+                overlay.style.zIndex = '9999'; // Đảm bảo lớp phủ ở trên tất cả các khung
+
+                // Thêm ảnh logo vào lớp phủ
+                const ToadImage = document.createElement('img');
+                ToadImage.src = "{{ url_for('static', filename='logo.png') }}";
+                ToadImage.alt = "Golden Toad";
+                ToadImage.style.maxWidth = '50%';
+                ToadImage.style.maxHeight = '50%';
+
+                // Thêm ảnh vào lớp phủ và lớp phủ vào container
+                overlay.appendChild(ToadImage);
+                container.appendChild(overlay);
+
+                // Sau 1 giây, loại bỏ lớp phủ để ảnh biến mất
+                setTimeout(() => container.removeChild(overlay), 1000);
+
+            }, 10000); // Lặp lại mỗi 10 giây
+        </script>
+
+    </body>
 </html>
