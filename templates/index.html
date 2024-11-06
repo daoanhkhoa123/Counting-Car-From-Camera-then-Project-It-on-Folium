@@ -10,41 +10,41 @@
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
         <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <link rel="icon" type="image/png" href="{{ url_for('static', filename='Logo_Trường_Đại_học_FPT.svg.jpg') }}">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap">
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='fpt_logo.jpg') }}">
+        <style>
+            /* CSS cho hiệu ứng fade in và fade out */
+            .fade-in-out {
+                opacity: 0;
+                transition: opacity 1s ease-in-out;
+            }
+            .fade-in-out.show {
+                opacity: 1;
+            }
+        </style>
     </head>
     <body>
+        <header>
+            <img src="{{ url_for('static', filename='header.png') }}">
+        </header>
+
         <div class="container">
-            <!-- Logo that appears every 10 seconds for 1 second -->
-            <div id="ToadContainer" style="display: none; position: absolute; top: 10px; left: 10px;">
-                <img id="ToadImage" src="{{ url_for('static', filename='logo.png') }}" alt="Logo" width="100" height="100">
-            </div>
-
-            <!-- First frame (top-left) with embedded Folium map -->
-            <div class="frame frame1">
-                <div id="map" style="width: 100%; height: 100%;"></div>
-            </div>
-
-            <!-- Video feed in the second frame -->
-            <div class="frame frame2">
-                <div id="video_feed">
-                    <img id="video" src="{{ url_for('video_feed') }}" width="100%" height="100%">
-                </div>
-            </div>
-
-            <!-- Pie chart in the third frame -->
-            <div class="frame frame3">
-                <div id="Chart">
-                    <img id="pieChart" src="{{ url_for('static', filename='pie_chart.png') }}" width="100%" height="100%">
-                </div>
-            </div>
-
-            <!-- TimeSeries in the third frame) -->
-            <div class="frame frame4">
-                <div id="TimeSeries">
-                    <img id="TimeSeriesChart" src="{{ url_for('static', filename='time_series.png') }}" width="100%" height="100%">
+            <div class="content">
+                <h1><img src="{{ url_for('static', filename='live.png') }}">中央 EXPRESSWAY</h1>
+                <img src="{{ url_for('static', filename='gold_frog_flipped.png') }}" class="floating-frog">
+                <div class="frames">
+                    <div class="frame"><div id="map" style="width: 100%; height: 100%;"></div></div>
+                    <div class="frame"><img id="video_feed" src="{{ url_for('video_feed') }}"></div>
+                    <div class="frame"><img id="pieChart" src="{{ url_for('static', filename='pie_chart.png') }}"></div>
+                    <div class="frame"><img id="TimeSeriesChart" src="{{ url_for('static', filename='time_series.png') }}"></div>
                 </div>
             </div>
         </div>
+        <audio id="frogSound" src="{{ url_for('static', filename='frog_sound.mp3') }}" preload="auto"></audio>
+
+        <footer>
+            Developed by Group 2 and mentored by Mr Tran Ngoc Hoang
+        </footer>
 
         <script>
             var map = L.map('map').setView([35.668215952240345, 139.30232459692803], 14);
@@ -70,7 +70,7 @@
 
             $(document).ready(function() {
                 updateMap();
-                setInterval(updateMap, 5000); // Update every 5 seconds
+                setInterval(updateMap, 2000); // Update every 5 seconds
             });
         </script>
 
@@ -82,13 +82,14 @@
                 document.getElementById('TimeSeriesChart').src = "{{ url_for('static', filename='time_series.png') }}" + "?t=" + new Date().getTime();
             }, 5000);
         </script>
+
         <script>
             setInterval(function() {
-                // Lấy phần tử container chính và tạo lớp phủ
-                const container = document.querySelector('.container');
+                const framesContainer = document.querySelector('.frames');
+                const frogSound = document.getElementById("frogSound");
 
-                // Tạo lớp phủ cho ảnh logo
                 const overlay = document.createElement('div');
+                overlay.classList.add('fade-in-out');
                 overlay.style.position = 'absolute';
                 overlay.style.top = '0';
                 overlay.style.left = '0';
@@ -98,23 +99,27 @@
                 overlay.style.display = 'flex';
                 overlay.style.justifyContent = 'center';
                 overlay.style.alignItems = 'center';
-                overlay.style.zIndex = '9999'; // Đảm bảo lớp phủ ở trên tất cả các khung
+                overlay.style.zIndex = '9999';
 
-                // Thêm ảnh logo vào lớp phủ
                 const ToadImage = document.createElement('img');
                 ToadImage.src = "{{ url_for('static', filename='logo.png') }}";
                 ToadImage.alt = "Golden Toad";
                 ToadImage.style.maxWidth = '50%';
                 ToadImage.style.maxHeight = '50%';
 
-                // Thêm ảnh vào lớp phủ và lớp phủ vào container
                 overlay.appendChild(ToadImage);
-                container.appendChild(overlay);
+                framesContainer.style.position = 'relative';
+                framesContainer.appendChild(overlay);
 
-                // Sau 1 giây, loại bỏ lớp phủ để ảnh biến mất
-                setTimeout(() => container.removeChild(overlay), 1000);
+                setTimeout(() => {
+                    overlay.classList.add('show');
+                    frogSound.play(); // Phát âm thanh lúc ảnh đạt độ đậm nhất
+                }, 10);
 
-            }, 10000); // Lặp lại mỗi 10 giây
+                setTimeout(() => overlay.classList.remove('show'), 500);
+                setTimeout(() => framesContainer.removeChild(overlay), 1000);
+
+            }, 10000);
         </script>
 
     </body>
