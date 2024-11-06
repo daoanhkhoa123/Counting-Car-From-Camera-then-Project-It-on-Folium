@@ -168,7 +168,7 @@ def get_volume():
     return [total_count, pred_volume]
 
 
-@app.route("/generate_map")
+@app.route("/generate_")
 def generate_map():
     market_street_coords, color = gen_map()
     return jsonify({'coords': market_street_coords, 'color': color})
