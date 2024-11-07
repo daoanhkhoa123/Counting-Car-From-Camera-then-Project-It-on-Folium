@@ -1,7 +1,7 @@
 # DAP---Counting-Car-From-Camera-then-Project-It-on-Folium
 This web application provides real-time vehicle counting on a road, displayed in 4 interactive frames. The application visualizes traffic conditions using a map, vehicle counts, pie charts, and time series data. The system updates every few seconds to provide accurate traffic insights.
 
-![Demo](demo/demo.png)
+![Demo](demo/Demo.png)
 
 ## Features
 
